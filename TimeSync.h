@@ -9,6 +9,7 @@
 #define LIBRARIES_TIMESYNC_TIMESYNC_H_
 
 #include <WString.h>
+#include "time.h"
 
 class TimeSync {
 public:
@@ -26,11 +27,13 @@ public:
 	TimeSync();
 
 	virtual void init() = 0;		// Initialized service
+	virtual void enabled(bool flag) = 0;
 	virtual bool initialized() = 0;	// Returns true if the time has ever been set
 	virtual void sync() = 0;		// Force synchronization
+	virtual bool lastSyncFailed() { return _lastSyncFailed; }
 
-	virtual void getTimeWithTz(String tz) = 0;
-	virtual void getLocalTime() = 0;
+	virtual struct tm* getTimeWithTz(String tz, struct tm *pTm, suseconds_t *uSec) = 0;
+	virtual struct tm* getLocalTime(struct tm *pTm, suseconds_t *uSec) = 0;
 	virtual void setTz(String tz) = 0;
 
 	virtual void setTime(String s) = 0;
@@ -39,6 +42,8 @@ public:
 	virtual SyncStats& getStats() = 0;
 
 protected:
+	bool _lastSyncFailed = true;
+
 	static const int SYNC_HOURS=3;
 	static const int SYNC_MINS=4;
 	static const int SYNC_SECS=5;

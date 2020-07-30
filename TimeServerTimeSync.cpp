@@ -7,54 +7,36 @@
 
 #include <TimeServerTimeSync.h>
 #include <TimeLib.h>
+#ifdef ESP8266
+#include "lwip/timers.h"
+#include <SoftMSTimer.h>            //                 nixiemisc
+#include <ESP8266WiFi.h>
+#endif
+
+#define DEBUG(...) { }
+
+#define TSTS_NOOP 0
+#define TSTS_DISABLE 1
+#define TSTS_ENABLE 2
+
+#ifdef ESP8266
+//static SoftMSTimer::TimerInfo syncTimeTimer = {
+//		3600000,	// 1 hour between syncs
+//		0,
+//		true,
+//		getTime
+//};
+//
+//static SoftMSTimer::TimerInfo *infos[] = {
+//		&syncTimeTimer,
+//		0
+//};
+//
+//SoftMSTimer timedFunctions(infos);
+
+#endif
 
 TimeServerTimeSync *TimeServerTimeSync::pTimeSync;
-
-// Only called from HTTPClientResponse
-void TimeServerTimeSync::setTimeFromInternet() {
-	String body = httpClient.getBody();
-	DEBUG(String("Got response") + body);
-	int intValues[6];
-	grabInts(body, &intValues[0], ",");
-
-	char _lastUpdateTime[24];
-
-//	failedCount = 0;
-	sprintf(_lastUpdateTime, "%02d:%02d:%02d %4d-%02d-%02d",
-			intValues[SYNC_HOURS],
-			intValues[SYNC_MINS],
-			intValues[SYNC_SECS],
-			intValues[SYNC_YEAR],
-			intValues[SYNC_MONTH],
-			intValues[SYNC_DAY]
-					  );
-
-	stats.lastUpdateTime = _lastUpdateTime;
-    setTime(intValues[SYNC_HOURS], intValues[SYNC_MINS], intValues[SYNC_SECS], intValues[SYNC_DAY], intValues[SYNC_MONTH], intValues[SYNC_YEAR]);
-    if (setCb != NULL) {
-    	setCb(body);
-    }
-}
-
-void TimeServerTimeSync::setTimeFromInternetCb() {
-	pTimeSync->setTimeFromInternet();
-}
-
-void TimeServerTimeSync::readTimeFailed(String msg) {
-	stats.failedCount = String(++numFailed);
-	stats.lastFailedMessage = msg;
-	DEBUG(msg);
-    if (errorCb != NULL) {
-    	errorCb(msg);
-    }
-
-	// Try again in 10 seconds
-	xTaskNotify(syncTimeTask, 10000, eSetValueWithOverwrite);
-}
-
-void TimeServerTimeSync::readTimeFailedCb(String msg) {
-	pTimeSync->readTimeFailed(msg);
-}
 
 TimeServerTimeSync::TimeServerTimeSync(String url, SetCb setCb, ErrorCb errorCb) {
 	pTimeSync = this;	// Yeuk
@@ -67,14 +49,37 @@ TimeServerTimeSync::~TimeServerTimeSync() {
 	// TODO Auto-generated destructor stub
 }
 
+void TimeServerTimeSync::enabled(bool flag) {
+
+}
+
 bool TimeServerTimeSync::initialized() {
 	return timeInitialized;
 }
 
-void TimeServerTimeSync::getTimeWithTz(String tz) {
+struct tm* TimeServerTimeSync::getTimeWithTz(String tz, struct tm *pTm, suseconds_t *uSec) {
+	return getLocalTime(pTm, uSec);
 }
 
-void TimeServerTimeSync::getLocalTime() {
+struct tm* TimeServerTimeSync::getLocalTime(struct tm *pTm, suseconds_t *uSec) {
+	time_t _now = ::now();
+	if (pTm == NULL) {
+		pTm = &cache;
+	}
+
+	pTm->tm_year = ::year(_now) % 100;
+	pTm->tm_mon = ::month(_now);
+	pTm->tm_mday = ::day(_now);
+	pTm->tm_hour = ::hour(_now);
+	pTm->tm_min = ::minute(_now);
+	pTm->tm_sec = ::second(_now);
+	pTm->tm_wday = ::weekday(_now);
+
+	if (uSec != NULL) {
+		*uSec = 0;
+	}
+
+	return pTm;
 }
 
 void TimeServerTimeSync::setTz(String tz) {
@@ -93,6 +98,86 @@ void TimeServerTimeSync::setTime(int hr, int min, int sec, int dy, int mnth, int
 	timeInitialized = true;
 }
 
+TimeSync::SyncStats& TimeServerTimeSync::getStats() {
+	return stats;
+}
+
+// Only called from HTTPClientResponse
+void TimeServerTimeSync::setTimeFromInternet() {
+	String body = httpClient.getBody();
+	DEBUG(String("Got response") + body);
+	int intValues[6];
+	grabInts(body, &intValues[0], ",");
+
+	char _lastUpdateTime[24];
+
+	sprintf(_lastUpdateTime, "%02d:%02d:%02d %4d-%02d-%02d",
+			intValues[SYNC_HOURS],
+			intValues[SYNC_MINS],
+			intValues[SYNC_SECS],
+			intValues[SYNC_YEAR],
+			intValues[SYNC_MONTH],
+			intValues[SYNC_DAY]
+					  );
+
+	_lastSyncFailed = false;
+	stats.lastUpdateTime = _lastUpdateTime;
+    setTime(intValues[SYNC_HOURS], intValues[SYNC_MINS], intValues[SYNC_SECS], intValues[SYNC_DAY], intValues[SYNC_MONTH], intValues[SYNC_YEAR]);
+    if (setCb != NULL) {
+    	setCb(body);
+    }
+}
+
+void TimeServerTimeSync::setTimeFromInternetCb() {
+	pTimeSync->setTimeFromInternet();
+}
+
+void TimeServerTimeSync::readTimeFailed(String msg) {
+	_lastSyncFailed = true;
+	stats.failedCount = String(++numFailed);
+	stats.lastFailedMessage = msg;
+	DEBUG(msg);
+    if (errorCb != NULL) {
+    	errorCb(msg);
+    }
+
+	// Try again in 10 seconds
+#ifdef ESP32
+	xTaskNotify(syncTimeTask, 10000, eSetValueWithOverwrite);
+#else
+#endif
+}
+
+void TimeServerTimeSync::readTimeFailedCb(String msg) {
+	pTimeSync->readTimeFailed(msg);
+}
+
+void TimeServerTimeSync::syncTimeTaskFn(void *pArg) {
+	pTimeSync->taskFn(pArg);
+}
+
+#ifdef ESP8266
+void TimeServerTimeSync::taskFn(void *pArg) {
+	sync();
+}
+
+void TimeServerTimeSync::sync() {
+    DEBUG(url);
+    // There may already be a timeout queued, but not much we can do about that
+	if (WiFi.status() == WL_CONNECTED) {
+		httpClient.makeRequest(setTimeFromInternetCb, readTimeFailedCb);
+		sys_timeout(3600000, syncTimeTaskFn, NULL);
+	} else {
+		sys_timeout(10000, syncTimeTaskFn, NULL);	// Try again in 10 seconds
+	}
+}
+
+void TimeServerTimeSync::init() {
+	httpClient.initialize(url);
+	sync();
+}
+#endif
+
 #ifdef ESP32
 void TimeServerTimeSync::init() {
     xTaskCreatePinnedToCore(
@@ -106,34 +191,43 @@ void TimeServerTimeSync::init() {
 		  );
 }
 
-TimeSync::SyncStats& TimeServerTimeSync::getStats() {
-	return stats;
-}
-
 void TimeServerTimeSync::taskFn(void *pArg) {
+	static bool enabled = true;
+
 	httpClient.initialize(url);
 
 	uint32_t waitValue = 0;
+	uint32_t notificationValue = 0;
+
 	while (true) {
-		while (xTaskNotifyWait(0xffffffff, 0xffffffff, &waitValue, waitValue/portTICK_PERIOD_MS) == pdFALSE) {
+		while (xTaskNotifyWait(0xffffffff, 0xffffffff, &notificationValue, waitValue/portTICK_PERIOD_MS) == pdFALSE) {
 			// The semaphore timed out, send the request
 
 			waitValue = 600000;	// Default wait for 1 quarter
 //			if (WiFi.status() == WL_CONNECTED) {
+			if (enabled) {
 				DEBUG("Getting time");
 				httpClient.makeRequest(setTimeFromInternetCb, readTimeFailedCb);
+			}
 //			}
 		}
-		// The task was notified, so loop and sleep for the time requested
+		switch (notificationValue) {
+		case TSTS_DISABLE:
+			enabled = false;
+			break;
+		case TSTS_ENABLE:
+			enabled = true;
+			break;
+		default:
+			// The task was notified, so loop and sleep for the time requested
+			break;
+		}
 	}
 }
 
-void TimeServerTimeSync::syncTimeTaskFn(void *pArg) {
-	pTimeSync->taskFn(pArg);
+void TimeServerTimeSync::sync() {
+	xTaskNotify(syncTimeTask, TSTS_NOOP, eSetValueWithOverwrite);
 }
 
-void TimeServerTimeSync::sync() {
-	xTaskNotify(syncTimeTask, 0, eSetValueWithOverwrite);
-}
 
 #endif

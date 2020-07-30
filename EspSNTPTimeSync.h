@@ -1,24 +1,20 @@
 /*
- * TimeServerTimeSync.h
+ * EspSNTPTimeSync.h
  *
- *  Created on: Jul 23, 2020
+ *  Created on: Jul 25, 2020
  *      Author: mpand
  */
 
-#ifndef LIBRARIES_TIMESYNC_TIMESERVERTIMESYNC_H_
-#define LIBRARIES_TIMESYNC_TIMESERVERTIMESYNC_H_
+#ifndef LIBRARIES_TIMESYNC_ESPSNTPTIMESYNC_H_
+#define LIBRARIES_TIMESYNC_ESPSNTPTIMESYNC_H_
 
+#if defined(ESP8266_2_7_3) || defined(ESP32)
 #include <TimeSync.h>
-#include "ESPAsyncHttpClient.h"
-#ifdef ESP32
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#endif
 
-class TimeServerTimeSync: public TimeSync {
+class EspSNTPTimeSync: public TimeSync {
 public:
-	TimeServerTimeSync(String url, SetCb setCb, ErrorCb errorCb);
-	virtual ~TimeServerTimeSync();
+	EspSNTPTimeSync(String timezone, SetCb setCb, ErrorCb errorCb);
+	virtual ~EspSNTPTimeSync();
 
 	virtual void init();
 	virtual void enabled(bool flag);
@@ -35,29 +31,26 @@ public:
 	virtual TimeSync::SyncStats& getStats();
 
 private:
+	void setFromDS3231();
+	void setDS3231();
+
 	void setTimeFromInternet();
 	void readTimeFailed(String msg);
-	void taskFn(void *pArg);
 
-	AsyncHTTPClient httpClient;
 	bool timeInitialized = false;
 	int numFailed = 0;
 	SyncStats stats;
-	String url;
+	String timezone;
 	SetCb setCb = NULL;
 	ErrorCb errorCb = NULL;
 
 	struct tm cache;
 
-	static TimeServerTimeSync *pTimeSync;
+	static EspSNTPTimeSync *pTimeSync;
 
 	static void setTimeFromInternetCb();
-	static void readTimeFailedCb(String msg);
-	static void syncTimeTaskFn(void *pArg);
-
-#ifdef ESP32
-	TaskHandle_t syncTimeTask;
-#endif
+	static void readTimeFailedCb(const char* msg);
 };
+#endif /* ESP8266_2_7_3 */
 
-#endif /* LIBRARIES_TIMESYNC_TIMESERVERTIMESYNC_H_ */
+#endif /* LIBRARIES_TIMESYNC_ESPSNTPTIMESYNC_H_ */

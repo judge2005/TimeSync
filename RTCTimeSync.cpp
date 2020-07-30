@@ -9,16 +9,18 @@
 #include <TimeLib.h>
 #include <Wire.h>
 #include <Arduino.h>
+#include <stdio.h>
 
 #ifndef DEBUG
 #define DEBUG(...) {}
 #endif
 
 RTCTimeSync *RTCTimeSync::pTimeSync;
-
-#define DS3231_I2C_ADDRESS 0x68
-#define RTC_READ 0
-#define RTC_WRITE 1
+const int RTCTimeSync::DS3231_I2C_ADDRESS;
+const int RTCTimeSync::RTC_READ;
+const int RTCTimeSync::RTC_WRITE;
+const int RTCTimeSync::RTC_ENABLE;
+const int RTCTimeSync::RTC_DISABLE;
 
 static byte decToBcd(byte val){
 // Convert normal decimal numbers to binary coded decimal
@@ -70,6 +72,7 @@ void RTCTimeSync::setDS3231() {
 }
 
 void RTCTimeSync::setFromDS3231() {
+	_lastSyncFailed = true;
 	Wire.beginTransmission(DS3231_I2C_ADDRESS);
 	if (Wire.endTransmission() == 0) {
 		Wire.beginTransmission(DS3231_I2C_ADDRESS);
@@ -101,6 +104,7 @@ void RTCTimeSync::setFromDS3231() {
 				DEBUG("Setting time from DS3231");
 				::setTime(hour, minute, second, dayOfMonth, month, year + 2000);
 				timeInitialized = true;
+				_lastSyncFailed = false;
 			}
 
 			// send it to the serial monitor
@@ -177,10 +181,29 @@ bool RTCTimeSync::initialized() {
 	return timeInitialized;
 }
 
-void RTCTimeSync::getTimeWithTz(String tz) {
+struct tm* RTCTimeSync::getTimeWithTz(String tz, struct tm *pTm, suseconds_t *uSec) {
+	return getLocalTime(pTm, uSec);
 }
 
-void RTCTimeSync::getLocalTime() {
+struct tm* RTCTimeSync::getLocalTime(struct tm *pTm, suseconds_t *uSec) {
+	time_t _now = ::now();
+	if (pTm == NULL) {
+		pTm = &cache;
+	}
+
+	pTm->tm_year = ::year(_now) % 100;
+	pTm->tm_mon = ::month(_now);
+	pTm->tm_mday = ::day(_now);
+	pTm->tm_hour = ::hour(_now);
+	pTm->tm_min = ::minute(_now);
+	pTm->tm_sec = ::second(_now);
+	pTm->tm_wday = ::weekday(_now);
+
+	if (uSec != NULL) {
+		*uSec = 0;
+	}
+
+	return pTm;
 }
 
 void RTCTimeSync::setTz(String tz) {
@@ -194,7 +217,10 @@ void RTCTimeSync::setTime(String s) {
 
 void RTCTimeSync::setTime(int hr, int min, int sec, int dy, int mnth, int yr) {
 	::setTime(hr, min, sec, dy, mnth, yr);
-	xTaskNotify(syncTimeTask, RTC_WRITE, eSetValueWithOverwrite);
+	_lastSyncFailed = false;
+#ifdef ESP32
+	xTaskNotify(syncTimeTask, RTC_WRITE, eSetBits);
+#endif
 	timeInitialized = true;
 }
 
@@ -219,34 +245,54 @@ void RTCTimeSync::init() {
 		  );
 }
 
+void RTCTimeSync::enabled(bool flag) {
+	xTaskNotify(syncTimeTask, flag ? RTC_ENABLE : RTC_DISABLE, eSetBits);
+}
+
 void RTCTimeSync::sync() {
-	xTaskNotify(syncTimeTask, RTC_READ, eSetValueWithOverwrite);
+	xTaskNotify(syncTimeTask, RTC_READ, eSetBits);
 }
 
 void RTCTimeSync::taskFn(void* pArg) {
+	static bool enabled = true;
 	pinMode(SDApin, OUTPUT);
 	pinMode(SCLpin, OUTPUT);
 
 	Wire.begin(SDApin, SCLpin);
 
 	uint32_t waitValue = 0;	// First time through, wake immediately
+	uint32_t notificationValue = 0;
+
 	while (true) {
-		while (xTaskNotifyWait(0xffffffff, 0xffffffff, &waitValue, waitValue/portTICK_PERIOD_MS) == pdFALSE) {
+		while (xTaskNotifyWait(0xffffffff, 0xffffffff, &notificationValue, waitValue/portTICK_PERIOD_MS) == pdFALSE) {
 			// The semaphore timed out, update time from RTC
-			setFromDS3231();
+			waitValue = 3600000;	// Delay at least 1 hour
+
+			if (enabled) {
+				DEBUG("Setting after timeout")
+				setFromDS3231();
+			}
 		}
 
-		// Take notification action, if any
-		switch (waitValue) {
-		case RTC_READ:
-			setFromDS3231();
-			break;
-		case RTC_WRITE:
+		// Take notification action, if any. Enable/disable always comes first
+		if (notificationValue & RTC_DISABLE) {
+			enabled = false;
+		}
+
+		if (notificationValue & RTC_ENABLE) {
+			enabled = true;
+		}
+
+		if (notificationValue & RTC_READ) {
+			if (enabled) {
+				DEBUG("Setting because READ")
+				setFromDS3231();
+			}
+		}
+
+		if (notificationValue & RTC_WRITE) {
 			setDS3231();
-			break;
 		}
-
-		waitValue = 3600000;	// Delay at least 1 hour
 	}
 }
 #endif
