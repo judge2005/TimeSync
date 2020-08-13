@@ -8,8 +8,11 @@
 #include <TimeServerTimeSync.h>
 #include <TimeLib.h>
 #ifdef ESP8266
+#ifndef ESP8266_2_7_3
 #include "lwip/timers.h"
-#include <SoftMSTimer.h>            //                 nixiemisc
+#else
+void sys_timeout_LWIP2(unsigned int, void (*)(void *), void *);
+#endif
 #include <ESP8266WiFi.h>
 #endif
 
@@ -18,23 +21,6 @@
 #define TSTS_NOOP 0
 #define TSTS_DISABLE 1
 #define TSTS_ENABLE 2
-
-#ifdef ESP8266
-//static SoftMSTimer::TimerInfo syncTimeTimer = {
-//		3600000,	// 1 hour between syncs
-//		0,
-//		true,
-//		getTime
-//};
-//
-//static SoftMSTimer::TimerInfo *infos[] = {
-//		&syncTimeTimer,
-//		0
-//};
-//
-//SoftMSTimer timedFunctions(infos);
-
-#endif
 
 TimeServerTimeSync *TimeServerTimeSync::pTimeSync;
 

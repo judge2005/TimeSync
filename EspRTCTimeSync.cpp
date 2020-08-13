@@ -122,13 +122,25 @@ void EspRTCTimeSync::setFromDS3231() {
 				DEBUG(now.tm_year);
 				struct timeval timeVal;
 				// Yeuk. Not nice and not thread safe and not fast
-				char *curTZ = getenv("TZ");
-				setenv("TZ", "UTC", 1);
+				char *tzBuf = getenv("TZ");
+				String ctz;
+
+				if (tzBuf == NULL) {
+					// Allocate a big buffer to TZ
+					setenv("TZ", "012345678901234567890123456789012345678901234567890123456789", 1);
+					tzBuf = getenv("TZ");
+				} else {
+					ctz = tzBuf;	// Save current TZ
+				}
+				strcpy(tzBuf, "UTC-0"); // See https://github.com/espressif/esp-idf/issues/3046
 				tzset();
 				timeVal.tv_usec = 0;
 				timeVal.tv_sec = ::mktime(&now);
-				if (curTZ) {
-					setenv("TZ", curTZ, 1);
+
+				if (ctz.length() > 0) {
+					// Restore previous timezone
+					strcpy(tzBuf, ctz.c_str()); // See https://github.com/espressif/esp-idf/issues/3046
+					tzset();
 				}
 
 				::settimeofday(&timeVal, NULL);

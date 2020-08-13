@@ -32,6 +32,12 @@ void EspSNTPTimeSync::init() {
 #else
 	pftime::configTzTime(timezone.c_str(), "pool.ntp.org");
 #endif
+	// setenv leaks memory, so make it allocate a buffer and then update that instead
+	// See https://github.com/espressif/esp-idf/issues/3046
+	if (getenv("TZ") == NULL) {
+		setenv("TZ", "012345678901234567890123456789012345678901234567890123456789", 1);
+	}
+	setTz(timezone);
 }
 
 void EspSNTPTimeSync::enabled(bool flag) {
@@ -50,10 +56,10 @@ bool EspSNTPTimeSync::initialized() {
 }
 
 struct tm* EspSNTPTimeSync::getTimeWithTz(String tz, struct tm* pTm, suseconds_t* uSec) {
-	char *curTZ = getenv("TZ");
-	setenv("TZ", tz.c_str(), 1);
-	struct tm* tm = getLocalTime(pTm, uSec);
-	setenv("TZ", curTZ, 1);
+	String curTZ = getenv("TZ");	// Copy contents of TZ string onto heap
+	setTz(tz);				// Overwrite existing value
+	struct tm* tm = getLocalTime(pTm, uSec);	// Get time
+	setTz(curTZ);			// Copy old TZ into environment
 
 	return tm;
 }
@@ -81,8 +87,12 @@ struct tm* EspSNTPTimeSync::getLocalTime(struct tm* pTm, suseconds_t* uSec) {
 	return pTm;
 }
 
+/**
+ * setenv() leaks like a sieve. So this is how you do it.
+ * See https://github.com/espressif/esp-idf/issues/3046
+ */
 void EspSNTPTimeSync::setTz(String tz) {
-	setenv("TZ", tz.c_str(), 1);
+	strcpy(getenv("TZ"), tz.c_str());
 	tzset();
 }
 

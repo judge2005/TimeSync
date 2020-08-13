@@ -31,11 +31,12 @@ public:
 	virtual void setTime(String s);
 	virtual void setTime(int hr,int min,int sec,int dy, int mnth, int yr);
 
+	virtual void setFromDS3231();
+	virtual void setDS3231();
+
 	virtual TimeSync::SyncStats& getStats();
 
 protected:
-	virtual void setFromDS3231();
-	virtual void setDS3231();
 
 	bool timeInitialized = false;
 
