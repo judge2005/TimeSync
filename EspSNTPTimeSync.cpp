@@ -6,11 +6,14 @@
  */
 #if defined(ESP8266_2_7_3) || defined(ESP32)
 
+#include <Arduino.h>
 #include <EspSNTPTimeSync.h>
 #include <ESPPerfectTime.h>
+#include <sys/time.h>
 #include <sntp_pt.h>
 #include <stdio.h>
 
+#define DEBUG(...) { Serial.println(__VA_ARGS__); }
 #ifndef DEBUG
 #define DEBUG(...) { }
 #endifEspSNTPTimeSync *EspSNTPTimeSync::pTimeSync;
@@ -68,7 +71,7 @@ struct tm* EspSNTPTimeSync::getLocalTime(struct tm* pTm, suseconds_t* uSec) {
 	suseconds_t usec;
 	struct tm *tm = pftime::localtime(nullptr);
 
-	DEBUG(tm->tm_year);
+//	DEBUG(tm->tm_year);
 
 	if (pTm != NULL && tm != NULL) {
 		*pTm = *tm;
@@ -76,10 +79,10 @@ struct tm* EspSNTPTimeSync::getLocalTime(struct tm* pTm, suseconds_t* uSec) {
 		pTm = tm;
 	}
 
-	DEBUG(pTm->tm_year);
+//	DEBUG(pTm->tm_year);
 	pTm->tm_mon += 1;
 	pTm->tm_year = pTm->tm_year % 100;
-	DEBUG(pTm->tm_year);
+//	DEBUG(pTm->tm_year);
 	if (uSec != NULL) {
 		*uSec = usec;
 	}

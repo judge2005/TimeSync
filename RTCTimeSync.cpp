@@ -5,12 +5,14 @@
  *      Author: mpand
  */
 
+#include <Arduino.h>
 #include <RTCTimeSync.h>
 #include <TimeLib.h>
 #include <Wire.h>
 #include <Arduino.h>
 #include <stdio.h>
 
+#define DEBUG(...) { Serial.println(__VA_ARGS__); }
 #ifndef DEBUG
 #define DEBUG(...) {}
 #endif
