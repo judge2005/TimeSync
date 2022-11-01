@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include <stdio.h>
 
-#define DEBUG(...) { Serial.println(__VA_ARGS__); }
+//#define DEBUG(...) { Serial.println(__VA_ARGS__); }
 #ifndef DEBUG
 #define DEBUG(...) {}
 #endif
@@ -110,25 +110,25 @@ void RTCTimeSync::setFromDS3231() {
 			}
 
 			// send it to the serial monitor
-			Serial.print(hour, DEC);
+			DEBUG(hour, DEC);
 			// convert the byte variable to a decimal number when displayed
-			Serial.print(":");
+			DEBUG(":");
 			if (minute < 10) {
-				Serial.print("0");
+				DEBUG("0");
 			}
-			Serial.print(minute, DEC);
-			Serial.print(":");
+			DEBUG(minute, DEC);
+			DEBUG(":");
 			if (second < 10) {
-				Serial.print("0");
+				DEBUG("0");
 			}
-			Serial.print(second, DEC);
-			Serial.print(" ");
-			Serial.print(dayOfMonth, DEC);
-			Serial.print("/");
-			Serial.print(month, DEC);
-			Serial.print("/");
-			Serial.print(year, DEC);
-			Serial.print(" Day of week: ");
+			DEBUG(second, DEC);
+			DEBUG(" ");
+			DEBUG(dayOfMonth, DEC);
+			DEBUG("/");
+			DEBUG(month, DEC);
+			DEBUG("/");
+			DEBUG(year, DEC);
+			DEBUG(" Day of week: ");
 			switch (dayOfWeek) {
 			case 1:
 				DEBUG("Sunday");

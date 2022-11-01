@@ -13,7 +13,7 @@
 #include <sntp_pt.h>
 #include <stdio.h>
 
-#define DEBUG(...) { Serial.println(__VA_ARGS__); }
+//#define DEBUG(...) { Serial.println(__VA_ARGS__); }
 #ifndef DEBUG
 #define DEBUG(...) { }
 #endifEspSNTPTimeSync *EspSNTPTimeSync::pTimeSync;
