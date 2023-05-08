@@ -202,7 +202,7 @@ struct tm* RTCTimeSync::getLocalTime(struct tm *pTm, suseconds_t *uSec) {
 	pTm->tm_wday = ::weekday(_now);
 
 	if (uSec != NULL) {
-		*uSec = 0;
+		*uSec = (::millis() % 1000) * 1000;
 	}
 
 	return pTm;
@@ -230,11 +230,25 @@ TimeSync::SyncStats& RTCTimeSync::getStats() {
 	return stats;
 }
 
-#ifdef ESP32
-void RTCTimeSync::syncTimeTaskFn(void* pArg) {
-	pTimeSync->taskFn(pArg);
+#ifdef ESP8266
+void RTCTimeSync::init() {
+	pinMode(SDApin, OUTPUT);
+	pinMode(SCLpin, OUTPUT);
+
+	Wire.begin(SDApin, SCLpin);
 }
 
+void RTCTimeSync::enabled(bool flag) {
+	_enabled = flag;
+}
+
+void RTCTimeSync::sync() {
+	if (_enabled) {
+		DEBUG("Setting because READ")
+		setFromDS3231();
+	}
+}
+#else
 void RTCTimeSync::init() {
     xTaskCreatePinnedToCore(
           syncTimeTaskFn, /* Function to implement the task */
@@ -255,8 +269,13 @@ void RTCTimeSync::sync() {
 	xTaskNotify(syncTimeTask, RTC_READ, eSetBits);
 }
 
+// static method that calls instance method
+void RTCTimeSync::syncTimeTaskFn(void* pArg) {
+	pTimeSync->taskFn(pArg);
+}
+
+// instance method
 void RTCTimeSync::taskFn(void* pArg) {
-	static bool enabled = true;
 	pinMode(SDApin, OUTPUT);
 	pinMode(SCLpin, OUTPUT);
 
@@ -270,7 +289,7 @@ void RTCTimeSync::taskFn(void* pArg) {
 			// The semaphore timed out, update time from RTC
 			waitValue = 3600000;	// Delay at least 1 hour
 
-			if (enabled) {
+			if (_enabled) {
 				DEBUG("Setting after timeout")
 				setFromDS3231();
 			}
@@ -278,15 +297,15 @@ void RTCTimeSync::taskFn(void* pArg) {
 
 		// Take notification action, if any. Enable/disable always comes first
 		if (notificationValue & RTC_DISABLE) {
-			enabled = false;
+			_enabled = false;
 		}
 
 		if (notificationValue & RTC_ENABLE) {
-			enabled = true;
+			_enabled = true;
 		}
 
 		if (notificationValue & RTC_READ) {
-			if (enabled) {
+			if (_enabled) {
 				DEBUG("Setting because READ")
 				setFromDS3231();
 			}

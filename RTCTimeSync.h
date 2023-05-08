@@ -39,6 +39,7 @@ public:
 protected:
 
 	bool timeInitialized = false;
+	bool _enabled = true;
 
 	int numFailed = 0;
 	SyncStats stats;

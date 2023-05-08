@@ -4,10 +4,10 @@
  *  Created on: Jul 25, 2020
  *      Author: mpand
  */
-#if defined(ESP8266_2_7_3) || defined(ESP32)
-
 #include <Arduino.h>
 #include <EspSNTPTimeSync.h>
+#if !defined(ARDUINO_ESP8266_RELEASE_2_3_0) || defined(ESP32)
+
 #include <ESPPerfectTime.h>
 #include <sys/time.h>
 #include <sntp_pt.h>
@@ -69,7 +69,7 @@ struct tm* EspSNTPTimeSync::getTimeWithTz(String tz, struct tm* pTm, suseconds_t
 
 struct tm* EspSNTPTimeSync::getLocalTime(struct tm* pTm, suseconds_t* uSec) {
 	suseconds_t usec;
-	struct tm *tm = pftime::localtime(nullptr);
+	struct tm *tm = pftime::localtime(nullptr, &usec);
 
 //	DEBUG(tm->tm_year);
 
@@ -183,4 +183,4 @@ void EspSNTPTimeSync::readTimeFailedCb(const char* msg) {
 	pTimeSync->readTimeFailed(msg);
 }
 
-#endif /* ESP8266_2_7_3 */
+#endif /* !ARDUINO_ESP8266_RELEASE_2_3_0 */

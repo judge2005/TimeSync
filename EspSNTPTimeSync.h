@@ -5,10 +5,12 @@
  *      Author: mpand
  */
 
+#include <core_version.h>
+
 #ifndef LIBRARIES_TIMESYNC_ESPSNTPTIMESYNC_H_
 #define LIBRARIES_TIMESYNC_ESPSNTPTIMESYNC_H_
 
-#if defined(ESP8266_2_7_3) || defined(ESP32)
+#if !defined(ARDUINO_ESP8266_RELEASE_2_3_0) || defined(ESP32)
 #include <TimeSync.h>
 
 class EspSNTPTimeSync: public TimeSync {
@@ -51,6 +53,6 @@ private:
 	static void setTimeFromInternetCb();
 	static void readTimeFailedCb(const char* msg);
 };
-#endif /* ESP8266_2_7_3 */
+#endif /* !ARDUINO_ESP8266_RELEASE_2_3_0 */
 
 #endif /* LIBRARIES_TIMESYNC_ESPSNTPTIMESYNC_H_ */

@@ -4,10 +4,11 @@
  *  Created on: Jul 27, 2020
  *      Author: mpand
  */
+#include <core_version.h>
 
 #ifndef LIBRARIES_TIMESYNC_ESPRTCTIMESYNC_H_
 #define LIBRARIES_TIMESYNC_ESPRTCTIMESYNC_H_
-#if defined(ESP8266_2_7_3) || defined(ESP32)
+#if !defined(ARDUINO_ESP8266_RELEASE_2_3_0) || defined(ESP32)
 #include <RTCTimeSync.h>
 
 class EspRTCTimeSync: public RTCTimeSync {
@@ -21,5 +22,5 @@ protected:
 	virtual void setDS3231();
 };
 
-#endif /* ESP8266_2_7_3 */
+#endif /* !ARDUINO_ESP8266_RELEASE_2_3_0 */
 #endif /* LIBRARIES_TIMESYNC_ESPRTCTIMESYNC_H_ */

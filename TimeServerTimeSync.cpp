@@ -7,15 +7,22 @@
 
 #include <TimeServerTimeSync.h>
 #include <TimeLib.h>
+#include <core_version.h>
+
 #ifdef ESP8266
-#ifndef ESP8266_2_7_3
+#ifdef ARDUINO_ESP8266_RELEASE_2_3_0
+extern "C" {
 #include "lwip/timers.h"
+}
 #else
+extern "C" {
 void sys_timeout_LWIP2(unsigned int, void (*)(void *), void *);
+}
 #endif
 #include <ESP8266WiFi.h>
 #endif
 
+//#define DEBUG(...) { Serial.println(__VA_ARGS__); }
 #define DEBUG(...) { }
 
 #define TSTS_NOOP 0
@@ -90,8 +97,11 @@ TimeSync::SyncStats& TimeServerTimeSync::getStats() {
 
 // Only called from HTTPClientResponse
 void TimeServerTimeSync::setTimeFromInternet() {
+#ifdef ESP8266
+	sys_timeout(3600000, syncTimeTaskFn, (void*)NULL);
+#endif
 	String body = httpClient.getBody();
-	DEBUG(String("Got response") + body);
+	DEBUG(String("Got response ") + body);
 	int intValues[6];
 	grabInts(body, &intValues[0], ",");
 
@@ -131,6 +141,7 @@ void TimeServerTimeSync::readTimeFailed(String msg) {
 #ifdef ESP32
 	xTaskNotify(syncTimeTask, 10000, eSetValueWithOverwrite);
 #else
+	sys_timeout(10000, syncTimeTaskFn, NULL);
 #endif
 }
 
@@ -152,7 +163,6 @@ void TimeServerTimeSync::sync() {
     // There may already be a timeout queued, but not much we can do about that
 	if (WiFi.status() == WL_CONNECTED) {
 		httpClient.makeRequest(setTimeFromInternetCb, readTimeFailedCb);
-		sys_timeout(3600000, syncTimeTaskFn, NULL);
 	} else {
 		sys_timeout(10000, syncTimeTaskFn, NULL);	// Try again in 10 seconds
 	}

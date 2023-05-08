@@ -5,14 +5,16 @@
  *      Author: mpand
  */
 
-#if defined(ESP8266_2_7_3) || defined(ESP32)
 #include <EspRTCTimeSync.h>
+#if !defined(ARDUINO_ESP8266_RELEASE_2_3_0) || defined(ESP32)
+#include <Arduino.h>
 #include "time.h"
 #include "sys/time.h"
 #include <Wire.h>
 #include <sntp_pt.h>
 #include <stdio.h>
 
+//#define DEBUG(...) { Serial.println(__VA_ARGS__); }
 #ifndef DEBUG
 #define DEBUG(...) {}
 #endif
@@ -185,5 +187,5 @@ void EspRTCTimeSync::setTime(int hr, int min, int sec, int dy, int mnth, int yr)
 	timeInitialized = true;
 }
 
-#endif /* ESP8266_2_7_3 */
+#endif /* !ARDUINO_ESP8266_RELEASE_2_3_0 */
 
