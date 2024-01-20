@@ -9,7 +9,7 @@
 #define LIBRARIES_TIMESYNC_TIMESERVERTIMESYNC_H_
 
 #include <TimeSync.h>
-#include "ESPAsyncHttpClient.h"
+#include "ESPAsyncHTTPClient.h"
 #ifdef ESP32
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
