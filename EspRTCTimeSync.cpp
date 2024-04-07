@@ -35,7 +35,7 @@ static uint8_t bcdToDec(uint8_t val)  {
   return ( (val/16*10) + (val%16) );
 }
 
-void EspRTCTimeSync::setDS3231() {
+void EspRTCTimeSync::setDevice() {
 	Wire.beginTransmission(DS3231_I2C_ADDRESS);
 	if (Wire.endTransmission() == 0) {
 		// sets time and date data to DS3231
@@ -81,7 +81,7 @@ void EspRTCTimeSync::setDS3231() {
 	}
 }
 
-void EspRTCTimeSync::setFromDS3231() {
+void EspRTCTimeSync::setFromDevice() {
 	_lastSyncFailed = true;
 	Wire.beginTransmission(DS3231_I2C_ADDRESS);
 	if (Wire.endTransmission() == 0) {

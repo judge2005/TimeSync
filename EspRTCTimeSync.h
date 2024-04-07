@@ -18,8 +18,8 @@ public:
 	virtual void setTime(int hr, int min, int sec, int dy, int mnth, int yr);
 
 protected:
-	virtual void setFromDS3231();
-	virtual void setDS3231();
+	virtual void setFromDevice();
+	virtual void setDevice();
 };
 
 #endif /* !ARDUINO_ESP8266_RELEASE_2_3_0 */

@@ -1,0 +1,14 @@
+{
+  "name": "TimeSync",
+  "keywords": "ntp, ds1302, ds3231",
+  "description": "ESP8266 and ESP32 library to manage time synchronization from and to multiple different sources",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/judge2005/TimeSync.git"
+  },
+  "frameworks": "arduino",
+  "platforms": ["espressif8266", "espressif32"],
+  "version": "1.1.0"
+}
+

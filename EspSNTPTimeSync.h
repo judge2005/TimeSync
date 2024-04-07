@@ -33,9 +33,6 @@ public:
 	virtual TimeSync::SyncStats& getStats();
 
 private:
-	void setFromDS3231();
-	void setDS3231();
-
 	void setTimeFromInternet();
 	void readTimeFailed(String msg);
 

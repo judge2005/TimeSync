@@ -34,7 +34,7 @@ static byte bcdToDec(byte val)  {
   return ( (val/16*10) + (val%16) );
 }
 
-void RTCTimeSync::setDS3231() {
+void RTCTimeSync::setDevice() {
 	Wire.beginTransmission(DS3231_I2C_ADDRESS);
 	if (Wire.endTransmission() == 0) {
 		// sets time and date data to DS3231
@@ -73,7 +73,7 @@ void RTCTimeSync::setDS3231() {
 	}
 }
 
-void RTCTimeSync::setFromDS3231() {
+void RTCTimeSync::setFromDevice() {
 	_lastSyncFailed = true;
 	Wire.beginTransmission(DS3231_I2C_ADDRESS);
 	if (Wire.endTransmission() == 0) {
@@ -291,7 +291,7 @@ void RTCTimeSync::taskFn(void* pArg) {
 
 			if (_enabled) {
 				DEBUG("Setting after timeout")
-				setFromDS3231();
+				setFromDevice();
 			}
 		}
 
@@ -307,12 +307,12 @@ void RTCTimeSync::taskFn(void* pArg) {
 		if (notificationValue & RTC_READ) {
 			if (_enabled) {
 				DEBUG("Setting because READ")
-				setFromDS3231();
+				setFromDevice();
 			}
 		}
 
 		if (notificationValue & RTC_WRITE) {
-			setDS3231();
+			setDevice();
 		}
 	}
 }

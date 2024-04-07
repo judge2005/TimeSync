@@ -1,23 +1,24 @@
 /*
- * RTCTimeSync.h
+ * DS1302TimeSync.h
  *
- *  Created on: Jul 23, 2020
+ *  Created on: Apr 7, 2024
  *      Author: mpand
  */
 
-#ifndef LIBRARIES_TIMESYNC_RTCTIMESYNC_H_
-#define LIBRARIES_TIMESYNC_RTCTIMESYNC_H_
+#ifndef LIBRARIES_TIMESYNC_DS1302TIMESYNC_H_
+#define LIBRARIES_TIMESYNC_DS1302TIMESYNC_H_
 
 #include <TimeSync.h>
+#include <ThreeWire.h>
 #ifdef ESP32
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #endif
 
-class RTCTimeSync: public TimeSync {
+class DS1302TimeSync: public TimeSync {
 public:
-	RTCTimeSync(int SDApin, int SCLpin);
-	virtual ~RTCTimeSync();
+	DS1302TimeSync(uint8_t ioPin, uint8_t clkPin, uint8_t cePin);
+	virtual ~DS1302TimeSync();
 
 	virtual void init();
 	virtual void enabled(bool flag);
@@ -34,13 +35,11 @@ public:
 	virtual void setFromDevice();
 	virtual void setDevice();
 
-	// Deprecated, use setFromDevice() and setDevice() instead
-	virtual void setFromDS3231() { setFromDevice(); }
-	virtual void setDS3231() { setDevice(); }
-
 	virtual TimeSync::SyncStats& getStats();
 
 protected:
+
+	ThreeWire tWire;
 
 	bool timeInitialized = false;
 	bool _enabled = true;
@@ -51,19 +50,17 @@ protected:
 	TaskHandle_t syncTimeTask;
 #endif
 
-	static const int DS3231_I2C_ADDRESS = 0x68;
+	static const uint8_t DS1302_REG_TIMEDATE_BURST = 0xBE;
 	static const int RTC_READ = 1;
 	static const int RTC_WRITE = 2;
 	static const int RTC_ENABLE = 4;
 	static const int RTC_DISABLE = 8;
 
 private:
-	int SDApin;
-	int SCLpin;
 
 	struct tm cache;
 
-	static RTCTimeSync *pTimeSync;
+	static DS1302TimeSync *pTimeSync;
 
 #ifdef ESP32
 	static void syncTimeTaskFn(void *pArg);
@@ -72,4 +69,4 @@ private:
 #endif
 };
 
-#endif /* LIBRARIES_TIMESYNC_RTCTIMESYNC_H_ */
+#endif /* LIBRARIES_TIMESYNC_DS1302TIMESYNC_H_ */
