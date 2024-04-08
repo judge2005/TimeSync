@@ -222,7 +222,7 @@ void DS1302TimeSync::enabled(bool flag) {
 void DS1302TimeSync::sync() {
 	if (_enabled) {
 		DEBUG("Setting because READ")
-		setFromDS1302();
+		setFromDevice();
 	}
 }
 #else
