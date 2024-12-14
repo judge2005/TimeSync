@@ -84,9 +84,13 @@ void EspDS1302TimeSync::setDevice() {
 
 void EspDS1302TimeSync::setFromDevice() {
 	_lastSyncFailed = true;
-	bool lostPower = true;
+	bool lostPower = false;
+
+	DEBUG("setFromDevice - 1");
 
 	tWire.beginTransmission(DS1302_REG_TIMEDATE_BURST | THREEWIRE_READFLAG);
+
+	DEBUG("setFromDevice - 2");
 
 	uint8_t second = bcdToDec(tWire.read() & 0x7F);
 	uint8_t minute = bcdToDec(tWire.read());
@@ -96,9 +100,15 @@ void EspDS1302TimeSync::setFromDevice() {
 	uint8_t dayOfWeek = bcdToDec(tWire.read());
 	uint8_t year = bcdToDec(tWire.read());
 
+	DEBUG("setFromDevice - 3");
+
 	tWire.read();  // throwing away write protect flag
 
+	DEBUG("setFromDevice - 4");
+
 	tWire.endTransmission();
+
+	DEBUG("setFromDevice - 5");
 
 	if (second > 59 || minute > 59 || hour > 23 || dayOfMonth > 31 || dayOfWeek > 7 || year > 99) {
 		lostPower = true;
@@ -166,6 +176,7 @@ void EspDS1302TimeSync::setTime(int hr, int min, int sec, int dy, int mnth, int 
 
 	_lastSyncFailed = false;
 #ifdef ESP32
+	DEBUG("Notifying set DS1302 task");
 	xTaskNotify(syncTimeTask, RTC_WRITE, eSetBits);
 #endif
 	timeInitialized = true;

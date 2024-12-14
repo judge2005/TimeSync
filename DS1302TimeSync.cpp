@@ -56,6 +56,7 @@ static byte BcdToBin24Hour(byte bcdHour)
 }
 
 void DS1302TimeSync::setDevice() {
+	DEBUG("Setting RTC time");
 	// set the date time
 	tWire.beginTransmission(DS1302_REG_TIMEDATE_BURST);
 
@@ -71,13 +72,19 @@ void DS1302TimeSync::setDevice() {
 	tWire.write(0); // no write protect, as all of this is ignored if it is protected
 
 	tWire.endTransmission();
+
+	DEBUG("Done setting RTC time");
 }
 
 void DS1302TimeSync::setFromDevice() {
 	_lastSyncFailed = true;
 	bool lostPower = true;
 
+	DEBUG("setFromDevice - 1");
+
 	tWire.beginTransmission(DS1302_REG_TIMEDATE_BURST | THREEWIRE_READFLAG);
+
+	DEBUG("setFromDevice - 2");
 
 	uint8_t second = bcdToDec(tWire.read() & 0x7F);
 	uint8_t minute = bcdToDec(tWire.read());
@@ -87,9 +94,15 @@ void DS1302TimeSync::setFromDevice() {
 	uint8_t dayOfWeek = bcdToDec(tWire.read());
 	uint8_t year = bcdToDec(tWire.read());
 
+	DEBUG("setFromDevice - 3");
+
 	tWire.read();  // throwing away write protect flag
 
+	DEBUG("setFromDevice - 4");
+
 	tWire.endTransmission();
+
+	DEBUG("setFromDevice - 5");
 
 	if (second > 59 || minute > 59 || hour > 23 || dayOfMonth > 31 || dayOfWeek > 7 || year > 99) {
 		lostPower = true;
@@ -222,7 +235,7 @@ void DS1302TimeSync::enabled(bool flag) {
 void DS1302TimeSync::sync() {
 	if (_enabled) {
 		DEBUG("Setting because READ")
-		setFromDevice();
+		setFromDS1302();
 	}
 }
 #else
@@ -271,10 +284,12 @@ void DS1302TimeSync::taskFn(void* pArg) {
 
 		// Take notification action, if any. Enable/disable always comes first
 		if (notificationValue & RTC_DISABLE) {
+			DEBUG("Disabling RTC sync")
 			_enabled = false;
 		}
 
 		if (notificationValue & RTC_ENABLE) {
+			DEBUG("Enabling RTC sync")
 			_enabled = true;
 		}
 
@@ -286,6 +301,7 @@ void DS1302TimeSync::taskFn(void* pArg) {
 		}
 
 		if (notificationValue & RTC_WRITE) {
+			DEBUG("Setting DS1302 because notify")
 			setDevice();
 		}
 	}
