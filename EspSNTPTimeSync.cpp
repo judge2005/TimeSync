@@ -13,17 +13,37 @@
 #include <sntp_pt.h>
 #include <stdio.h>
 
+// https://github.com/espressif/arduino-esp32/issues/10526
+#ifdef CONFIG_LWIP_TCPIP_CORE_LOCKING
+  #define TCP_MUTEX_LOCK()                                \
+    if (!sys_thread_tcpip(LWIP_CORE_LOCK_QUERY_HOLDER)) { \
+      LOCK_TCPIP_CORE();                                  \
+    }
+
+  #define TCP_MUTEX_UNLOCK()                             \
+    if (sys_thread_tcpip(LWIP_CORE_LOCK_QUERY_HOLDER)) { \
+      UNLOCK_TCPIP_CORE();                               \
+    }
+#else // CONFIG_LWIP_TCPIP_CORE_LOCKING
+  #define TCP_MUTEX_LOCK()
+  #define TCP_MUTEX_UNLOCK()
+#endif // CONFIG_LWIP_TCPIP_CORE_LOCKING
+
+
 //#define DEBUG(...) { Serial.println(__VA_ARGS__); }
 #ifndef DEBUG
 #define DEBUG(...) { }
-#endifEspSNTPTimeSync *EspSNTPTimeSync::pTimeSync;
-EspSNTPTimeSync::EspSNTPTimeSync(String timezone, SetCb setCb, ErrorCb errorCb) {
+#endif
+EspSNTPTimeSync *EspSNTPTimeSync::pTimeSync;
+
+EspSNTPTimeSync::EspSNTPTimeSync(String timezone, SetCb setCb, ErrorCb errorCb) {
 	pTimeSync = this;	// Yeuk
 	this->timezone = timezone;
 	this->setCb = setCb;
 	this->errorCb = errorCb;
 }
-EspSNTPTimeSync::~EspSNTPTimeSync() {
+
+EspSNTPTimeSync::~EspSNTPTimeSync() {
 }
 
 void EspSNTPTimeSync::init() {
@@ -31,7 +51,9 @@ void EspSNTPTimeSync::init() {
 	pftime_sntp::setfailcallback(readTimeFailedCb);
 
 #ifdef ESP32
+	TCP_MUTEX_LOCK();
 	pftime::configTzTime(PSTR(timezone.c_str()), "pool.ntp.org");
+	TCP_MUTEX_UNLOCK();
 #else
 	pftime::configTzTime(timezone.c_str(), "pool.ntp.org");
 #endif
