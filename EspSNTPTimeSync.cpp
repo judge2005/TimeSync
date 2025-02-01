@@ -10,6 +10,7 @@
 
 #include <ESPPerfectTime.h>
 #include <sys/time.h>
+#include <lwip/tcpip.h>
 #include <sntp_pt.h>
 #include <stdio.h>
 
