@@ -26,9 +26,8 @@
       "platforms": ["espressif8266", "espressif32"]
     },
     {
-      "owner": "hunamizawa",      
       "name": "ESPPerfectTime",
-      "version": "0.3.0",
+      "version": "https://github.com/judge2005/ESPPerfectTime.git",
       "platforms": ["espressif8266", "espressif32"]
     },
     {
