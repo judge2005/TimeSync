@@ -245,7 +245,7 @@ void RTCTimeSync::enabled(bool flag) {
 void RTCTimeSync::sync() {
 	if (_enabled) {
 		DEBUG("Setting because READ")
-		setFromDS3231();
+		setFromDevice();
 	}
 }
 #else
