@@ -91,6 +91,7 @@ void EspRTCTimeSync::setFromDevice() {
 
 		Wire.requestFrom(DS3231_I2C_ADDRESS, 1);
 		uint8_t lostPower = Wire.read() >> 7;
+		_lostPower = lostPower;
 		if (lostPower) {
 			DEBUG("RTC lost power");
 		}
