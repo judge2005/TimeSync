@@ -78,7 +78,7 @@ void DS1302TimeSync::setDevice() {
 
 void DS1302TimeSync::setFromDevice() {
 	_lastSyncFailed = true;
-	bool lostPower = true;
+	bool lostPower = false;
 
 	DEBUG("setFromDevice - 1");
 
