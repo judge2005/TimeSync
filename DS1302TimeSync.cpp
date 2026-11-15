@@ -78,7 +78,7 @@ void DS1302TimeSync::setDevice() {
 
 void DS1302TimeSync::setFromDevice() {
 	_lastSyncFailed = true;
-	bool lostPower = true;
+	bool lostPower = false;
 
 	DEBUG("setFromDevice - 1");
 
@@ -107,6 +107,7 @@ void DS1302TimeSync::setFromDevice() {
 	if (second > 59 || minute > 59 || hour > 23 || dayOfMonth > 31 || dayOfWeek > 7 || year > 99) {
 		lostPower = true;
 	}
+	_lostPower = lostPower;
 
 	if (!lostPower) {
 		DEBUG("Setting time from DS1302");

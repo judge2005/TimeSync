@@ -31,6 +31,9 @@ public:
 	virtual bool initialized() = 0;	// Returns true if the time has ever been set
 	virtual void sync() = 0;		// Force synchronization
 	virtual bool lastSyncFailed() { return _lastSyncFailed; }
+	// True if an RTC said, the last time it was read, that it had lost power since its time was set, so its
+	// time was ignored. One with a flat battery does this every time the power comes back.
+	virtual bool lostPower() { return _lostPower; }
 
 	virtual struct tm* getTimeWithTz(String tz, struct tm *pTm, suseconds_t *uSec) = 0;
 	virtual struct tm* getLocalTime(struct tm *pTm, suseconds_t *uSec) = 0;
@@ -43,6 +46,7 @@ public:
 
 protected:
 	bool _lastSyncFailed = true;
+	bool _lostPower = false;
 
 	static const int SYNC_HOURS=3;
 	static const int SYNC_MINS=4;

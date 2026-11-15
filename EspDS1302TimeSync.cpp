@@ -113,6 +113,7 @@ void EspDS1302TimeSync::setFromDevice() {
 	if (second > 59 || minute > 59 || hour > 23 || dayOfMonth > 31 || dayOfWeek > 7 || year > 99) {
 		lostPower = true;
 	}
+	_lostPower = lostPower;
 
 	if (!lostPower) {
 		DEBUG("Setting time from DS1302");

@@ -83,6 +83,7 @@ void RTCTimeSync::setFromDevice() {
 
 		Wire.requestFrom(DS3231_I2C_ADDRESS, 1);
 		byte lostPower = Wire.read() >> 7;
+		_lostPower = lostPower;
 		if (lostPower) {
 			DEBUG("RTC lost power");
 		}
